@@ -40,17 +40,13 @@ def plot_unified_acoustic_graphs(mel_db, explanation):
     rms = explanation["rms"]
 
     fig, axes = plt.subplots(2, 1, figsize=(8, 4.6), gridspec_kw={"height_ratios": [1, 1]})
-
-    # 1. 2D Log-Mel Spectrogram
     img = axes[0].imshow(mel_db, origin="lower", aspect="auto", cmap="magma", extent=[0, 3.0, 0, 8000])
     axes[0].set_title("2D Log-Mel Spectrogram (Frequency over Time)", fontsize=10, fontweight="bold", pad=5)
     axes[0].set_ylabel("Freq (Hz)", fontsize=9)
     axes[0].tick_params(labelsize=8)
 
-    # 2. Combined Pitch & Energy Dynamics
     ax_energy = axes[1]
     ax_pitch = ax_energy.twinx()
-
     line1 = ax_energy.plot(times[:len(rms)], rms, color="#38bdf8", lw=1.8, label="Energy (RMS)")
     ax_energy.set_ylabel("Energy", color="#38bdf8", fontsize=9)
     ax_energy.tick_params(axis="y", labelcolor="#38bdf8", labelsize=8)
@@ -70,7 +66,6 @@ def plot_unified_acoustic_graphs(mel_db, explanation):
     plt.tight_layout()
     return fig
 
-# --- Main App Header ---
 st.title("Spoken Emotion Recognition")
 st.caption("Deep Learning Audio Classifier · Log-Mel Spectrograms & Acoustic Feature Analysis")
 
@@ -96,7 +91,6 @@ with tab_upload:
         audio_bytes = uploaded_file.read()
         selected_audio_source = io.BytesIO(audio_bytes)
 
-# --- Execution & Results ---
 if selected_audio_source is not None:
     st.divider()
     st.audio(audio_bytes, format="audio/wav")
@@ -120,7 +114,7 @@ if selected_audio_source is not None:
             except Exception:
                 probabilities = None
 
-        # Intelligent Acoustic Classifier fallback
+        # Intelligent acoustic inference fallback
         if predicted_emotion is None or probabilities is None:
             avg_pitch = explanation["metrics"]["mean_pitch_hz"]
             pitch_std = explanation["metrics"]["pitch_std_hz"]
@@ -145,11 +139,9 @@ if selected_audio_source is not None:
             confidence = probabilities[top_idx]
 
     col_pred, col_graphs = st.columns([1, 1.6])
-
     with col_pred:
         color_map = {"Angry": "#ef4444", "Happy": "#10b981", "Sad": "#38bdf8"}
         color = color_map.get(predicted_emotion, "#38bdf8")
-
         st.markdown(
             f"""
             <div style="background-color: {color}15; border: 2px solid {color}; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
@@ -160,7 +152,6 @@ if selected_audio_source is not None:
             """,
             unsafe_allow_html=True
         )
-
         st.markdown("##### Class Probabilities")
         for i, emo in enumerate(EMOTIONS):
             prob = probabilities[i]
