@@ -1,0 +1,8 @@
+{
+  "name": "Growfinix ML Internship - Spoken Emotion Recognition",
+  "description": "Spoken Emotion Recognition from Audio using Librosa, TensorFlow CNN, and Streamlit with live recording and acoustic explainability.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
