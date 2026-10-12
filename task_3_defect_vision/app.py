@@ -126,7 +126,7 @@ def predict_defect(model, pil_image):
         label = "Perfect"
         confidence = p_perfect
 
-    cam_tensor = feat[0].mean(dim=0).numpy()
+    cam_tensor = feat[0].mean(dim=0).detach().cpu().numpy()
     cam_min = cam_tensor.min()
     cam_max = cam_tensor.max()
     if cam_max > cam_min:
@@ -246,7 +246,7 @@ if "active_image" not in st.session_state:
     st.session_state["active_name"] = "Crack Defect"
 
 st.title("Assembly Line Defect Detection")
-st.caption("Scan photos of manufactured components and classify them into Defective vs Perfect with real-time localization.")
+st.caption("Quality Control Defect Vision • Real-Time Automated Component Scanner")
 
 st.markdown("**1. Select a Sample Image or Upload Your Own:**")
 
