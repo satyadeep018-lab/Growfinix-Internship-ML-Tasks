@@ -1,4 +1,3 @@
----
 
 ### 2. Task 3 `task_3_defect_vision/README.md`
 
