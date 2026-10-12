@@ -9,14 +9,63 @@ for p in (CURRENT_DIR, PARENT_DIR):
 
 import torch
 import streamlit as st
-from PIL import Image
+import numpy as np
+from PIL import Image, ImageDraw, ImageFilter
 
 try:
-    from dataset import create_synthetic_component_image
     from model import DefectResNet, predict_defect
 except Exception:
-    from task_3_defect_vision.dataset import create_synthetic_component_image
     from task_3_defect_vision.model import DefectResNet, predict_defect
+
+def create_synthetic_component_image(defect_type=None, img_size=(224, 224), seed=None):
+    if seed is not None:
+        np.random.seed(seed)
+    w, h = img_size
+    base_val = np.random.randint(160, 195)
+    noise = np.random.normal(0, 5, (h, w, 3))
+    gradient = np.tile(np.linspace(-6, 6, w), (h, 1))
+    gradient = np.repeat(gradient[:, :, np.newaxis], 3, axis=2)
+    canvas_arr = np.clip(base_val + noise + gradient, 60, 230).astype(np.uint8)
+    image = Image.fromarray(canvas_arr, mode="RGB")
+    draw = ImageDraw.Draw(image)
+    num_lines = np.random.randint(15, 25)
+    for _ in range(num_lines):
+        y = np.random.randint(0, h)
+        stroke_delta = np.random.randint(-6, 6)
+        c = int(np.clip(base_val + stroke_delta, 100, 220))
+        draw.line([(0, y), (w, y)], fill=(c, c, c), width=1)
+    if defect_type == "crack":
+        start_x = np.random.randint(w // 4, 3 * w // 4)
+        start_y = np.random.randint(h // 5, h // 3)
+        cur_x, cur_y = start_x, start_y
+        steps = np.random.randint(22, 38)
+        for _ in range(steps):
+            next_x = cur_x + np.random.randint(-14, 15)
+            next_y = cur_y + np.random.randint(5, 14)
+            draw.line([(cur_x, cur_y), (next_x, next_y)], fill=(12, 12, 15), width=3)
+            cur_x, cur_y = next_x, next_y
+            if np.random.rand() > 0.65:
+                bx = cur_x + np.random.randint(-16, 16)
+                by = cur_y + np.random.randint(4, 12)
+                draw.line([(cur_x, cur_y), (bx, by)], fill=(18, 18, 22), width=2)
+    elif defect_type == "scratch":
+        sx1 = np.random.randint(25, w - 60)
+        sy1 = np.random.randint(25, h - 60)
+        sx2 = sx1 + np.random.randint(50, 120)
+        sy2 = sy1 + np.random.randint(-40, 60)
+        draw.line([(sx1, sy1), (sx2, sy2)], fill=(15, 15, 18), width=3)
+        draw.line([(sx1 + 1, sy1 + 1), (sx2 + 1, sy2 + 1)], fill=(250, 250, 255), width=1)
+    elif defect_type == "pinhole":
+        center_x = np.random.randint(w // 3, 2 * w // 3)
+        center_y = np.random.randint(h // 3, 2 * h // 3)
+        num_holes = np.random.randint(5, 12)
+        for _ in range(num_holes):
+            px = center_x + np.random.randint(-30, 30)
+            py = center_y + np.random.randint(-30, 30)
+            r = np.random.randint(3, 7)
+            draw.ellipse([px - r, py - r, px + r, py + r], fill=(10, 10, 12), outline=(230, 230, 240))
+    image = image.filter(ImageFilter.GaussianBlur(radius=0.3))
+    return image
 
 st.set_page_config(
     page_title="Assembly Line Defect Detection",
