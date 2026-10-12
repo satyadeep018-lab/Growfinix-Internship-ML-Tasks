@@ -1,8 +1,7 @@
-# requirements.txt - Growfinix ML Internship Task 1: Spoken Emotion Recognition
-tensorflow>=2.15.0
+tensorflow-cpu>=2.15.0
 librosa>=0.10.1
 soundfile>=0.12.1
-numpy>=1.24.0
+numpy>=1.24.0,<2.0.0
 scipy>=1.11.0
 matplotlib>=3.8.0
 scikit-learn>=1.4.0

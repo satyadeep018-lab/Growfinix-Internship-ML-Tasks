@@ -1,0 +1,1 @@
+Run `python prepare_data.py --generate-samples` to populate this folder with sample WAV files automatically!

@@ -40,7 +40,7 @@ def plot_unified_acoustic_graphs(mel_db, explanation):
     rms = explanation["rms"]
 
     fig, axes = plt.subplots(2, 1, figsize=(8, 4.6), gridspec_kw={"height_ratios": [1, 1]})
-    img = axes[0].imshow(mel_db, origin="lower", aspect="auto", cmap="magma", extent=[0, 3.0, 0, 8000])
+    axes[0].imshow(mel_db, origin="lower", aspect="auto", cmap="magma", extent=[0, 3.0, 0, 8000])
     axes[0].set_title("2D Log-Mel Spectrogram (Frequency over Time)", fontsize=10, fontweight="bold", pad=5)
     axes[0].set_ylabel("Freq (Hz)", fontsize=9)
     axes[0].tick_params(labelsize=8)
@@ -92,83 +92,26 @@ with tab_upload:
         selected_audio_source = io.BytesIO(audio_bytes)
 
 if selected_audio_source is not None:
-    st.divider()
+    y, sr = load_and_standardize_audio(selected_audio_source)
     st.audio(audio_bytes, format="audio/wav")
 
-    with st.spinner("Analyzing speech acoustics and spectrogram..."):
-        y, sr = load_and_standardize_audio(selected_audio_source)
-        mel_db = compute_log_mel_spectrogram(y, sr)
-        explanation = extract_explainability_features(y, sr)
+    mel_db = compute_log_mel_spectrogram(y, sr)
+    explanation = extract_explainability_features(y, sr)
 
-        probabilities = None
-        predicted_emotion = None
+    st.subheader("2. Model Prediction")
+    if cnn_model is not None:
+        input_tensor = np.expand_dims(np.expand_dims(mel_db, axis=0), axis=-1)
+        probs = cnn_model.predict(input_tensor, verbose=0)[0]
+    else:
+        probs = explanation["heuristic_probabilities"]
 
-        if cnn_model is not None:
-            try:
-                input_tensor = np.expand_dims(np.expand_dims(mel_db, axis=0), axis=-1)
-                raw_preds = cnn_model.predict(input_tensor, verbose=0)[0]
-                probabilities = [float(p) for p in raw_preds]
-                top_idx = int(np.argmax(probabilities))
-                predicted_emotion = EMOTIONS[top_idx]
-                confidence = probabilities[top_idx]
-            except Exception:
-                probabilities = None
+    top_idx = int(np.argmax(probs))
+    pred_label = EMOTIONS[top_idx]
+    pred_conf = float(probs[top_idx])
 
-        # Intelligent acoustic inference fallback
-        if predicted_emotion is None or probabilities is None:
-            avg_pitch = explanation["metrics"]["mean_pitch_hz"]
-            pitch_std = explanation["metrics"]["pitch_std_hz"]
-            max_energy = explanation["metrics"]["max_energy"]
-            avg_energy = explanation["metrics"]["mean_energy"]
-            burst_ratio = max_energy / (avg_energy + 1e-5)
+    st.success(f"**Predicted Emotion: {pred_label} ({pred_conf * 100:.1f}% Confidence)**")
+    st.progress(pred_conf)
 
-            if (avg_pitch > 190 and burst_ratio > 2.0) or (avg_pitch > 215 and max_energy > 0.06):
-                p_ang, p_hap, p_sad = 0.82, 0.12, 0.06
-            elif (pitch_std > 26 and avg_pitch > 165) or (avg_pitch > 180 and pitch_std > 20):
-                p_hap, p_ang, p_sad = 0.84, 0.10, 0.06
-            elif avg_pitch < 160 and (avg_energy < 0.06 or pitch_std < 22):
-                p_sad, p_hap, p_ang = 0.86, 0.08, 0.06
-            elif avg_pitch > 175:
-                p_hap, p_ang, p_sad = 0.65, 0.22, 0.13
-            else:
-                p_sad, p_hap, p_ang = 0.64, 0.21, 0.15
-
-            probabilities = [p_ang, p_hap, p_sad]
-            top_idx = int(np.argmax(probabilities))
-            predicted_emotion = EMOTIONS[top_idx]
-            confidence = probabilities[top_idx]
-
-    col_pred, col_graphs = st.columns([1, 1.6])
-    with col_pred:
-        color_map = {"Angry": "#ef4444", "Happy": "#10b981", "Sad": "#38bdf8"}
-        color = color_map.get(predicted_emotion, "#38bdf8")
-        st.markdown(
-            f"""
-            <div style="background-color: {color}15; border: 2px solid {color}; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
-                <p style="margin: 0; font-size: 11px; text-transform: uppercase; font-weight: 700; color: #94a3b8;">Detected Emotion</p>
-                <h1 style="margin: 4px 0 6px 0; color: {color}; font-size: 36px; font-weight: 800;">{predicted_emotion}</h1>
-                <p style="margin: 0; font-size: 14px; font-weight: 600; color: #f1f5f9;">Confidence: <b>{confidence * 100:.0f}%</b></p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        st.markdown("##### Class Probabilities")
-        for i, emo in enumerate(EMOTIONS):
-            prob = probabilities[i]
-            st.write(f"**{emo}**: {prob * 100:.0f}%")
-            st.progress(float(prob))
-
-        diag = explanation["diagnostic_insights"][0] if len(explanation["diagnostic_insights"]) > 0 else "Acoustic features match this emotion profile."
-        st.markdown(
-            f"""
-            <div style="background-color: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; margin-top: 14px;">
-                <p style="margin: 0; font-size: 12px; color: #cbd5e1;"><b>Diagnosis:</b> {diag}</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with col_graphs:
-        unified_fig = plot_unified_acoustic_graphs(mel_db, explanation)
-        st.pyplot(unified_fig)
-        st.caption(f"Average Pitch: {explanation['metrics']['mean_pitch_hz']} Hz · Peak Energy: {explanation['metrics']['max_energy']}")
+    st.subheader("3. Acoustic Explainability")
+    fig = plot_unified_acoustic_graphs(mel_db, explanation)
+    st.pyplot(fig)

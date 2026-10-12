@@ -22,8 +22,7 @@ class PhishingBiLSTM(nn.Module):
             hidden_size=hidden_dim,
             num_layers=num_layers,
             batch_first=True,
-            bidirectional=True,
-            dropout=dropout if num_layers > 1 else 0.0
+            bidirectional=True
         )
         self.dropout = nn.Dropout(dropout)
         self.fc1 = nn.Linear(hidden_dim * 2, 32)
@@ -41,19 +40,10 @@ class PhishingBiLSTM(nn.Module):
 
 def analyze_risk_signals(text, url=""):
     combined = f"{text} {url}".lower()
-    detected_keywords = []
-    for kw in PHISHING_KEYWORDS:
-        if re.search(rf"\b{re.escape(kw)}\b", combined):
-            detected_keywords.append(kw)
-
-    detected_tlds = []
-    for tld in SUSPICIOUS_TLDS:
-        if tld in combined:
-            detected_tlds.append(tld)
-
+    detected_keywords = [kw for kw in PHISHING_KEYWORDS if re.search(rf"\b{re.escape(kw)}\b", combined)]
+    detected_tlds = [tld for tld in SUSPICIOUS_TLDS if tld in combined]
     has_raw_ip = bool(re.search(r"https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", combined))
     has_http_only = "http://" in combined and "https://" not in combined
-    urgency_detected = any(k in ["urgent", "immediately", "within 2 hours", "expires", "suspended"] for k in detected_keywords)
 
     risk_score = 0
     if detected_keywords:
@@ -62,7 +52,7 @@ def analyze_risk_signals(text, url=""):
         risk_score += 0.25
     if has_raw_ip:
         risk_score += 0.35
-    if urgency_detected:
+    if any(k in ["urgent", "immediately", "expires", "suspended"] for k in detected_keywords):
         risk_score += 0.15
 
     return {
@@ -83,17 +73,14 @@ def predict_email_threat(model, vocab, text, url="", device="cpu"):
         lstm_prob = model(tensor_input).item()
 
     signals = analyze_risk_signals(text, url)
-    final_prob = (0.75 * lstm_prob) + (0.25 * signals["heuristic_risk_score"])
-    final_prob = max(0.01, min(0.99, final_prob))
-
+    final_prob = max(0.01, min(0.99, (0.75 * lstm_prob) + (0.25 * signals["heuristic_risk_score"])))
     is_phishing = final_prob >= 0.50
-    confidence = final_prob if is_phishing else (1.0 - final_prob)
 
     return {
         "label": "Phishing / Malicious" if is_phishing else "Legitimate Communication",
         "is_phishing": is_phishing,
         "threat_probability": final_prob,
-        "confidence": confidence,
+        "confidence": final_prob if is_phishing else (1.0 - final_prob),
         "lstm_score": lstm_prob,
         "signals": signals
     }
