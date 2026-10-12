@@ -1,4 +1,4 @@
-# Growfinix Technology — 02 Month Machine Learning Internship
+
 # Growfinix Technology — 02 Month Machine Learning Internship
 
 Repository containing end-to-end Machine Learning and Deep Learning projects completed as part of the **Growfinix Technology 2-Month Machine Learning Internship (Month 2: Deep Learning, Audio & NLP)**.
