@@ -115,13 +115,13 @@ def predict_defect(model, pil_image):
     
     if is_anomaly:
         p_defective = max(0.965, p_defective)
-        p_perfect = 1.0 - p_defective
+        p_perfect = max(0.0, 1.0 - p_defective)
         is_defective = True
         label = "Defective"
         confidence = p_defective
     else:
         p_perfect = max(0.982, p_perfect)
-        p_defective = 1.0 - p_perfect
+        p_defective = max(0.0, 1.0 - p_perfect)
         is_defective = False
         label = "Perfect"
         confidence = p_perfect
@@ -160,7 +160,7 @@ def predict_defect(model, pil_image):
     return {
         "label": label,
         "is_defective": is_defective,
-        "confidence": float(confidence),
+        "confidence": float(min(max(confidence, 0.0), 1.0)),
         "raw_image": img_resized,
         "heatmap_image": heatmap_overlay,
         "box_image": box_overlay
@@ -241,14 +241,16 @@ SAMPLE_PRESETS = {
     "Smooth Surface": {"file": "perfect_smooth.png", "type": None, "seed": 999}
 }
 
+if "active_image" not in st.session_state:
+    st.session_state["active_image"] = create_synthetic_component_image(defect_type="crack", seed=42)
+    st.session_state["active_name"] = "Crack Defect"
+
 st.title("Assembly Line Defect Detection")
 st.caption("Scan photos of manufactured components and classify them into Defective vs Perfect with real-time localization.")
 
 st.markdown("**1. Select a Sample Image or Upload Your Own:**")
 
 btn_cols = st.columns(6)
-selected_image = None
-selected_name = "Crack Defect"
 
 for i, (name, conf) in enumerate(SAMPLE_PRESETS.items()):
     with btn_cols[i]:
@@ -258,12 +260,13 @@ for i, (name, conf) in enumerate(SAMPLE_PRESETS.items()):
             filepath = os.path.join(SAMPLES_DIR, conf["file"])
             if os.path.exists(filepath):
                 try:
-                    selected_image = Image.open(filepath).convert("RGB")
+                    img = Image.open(filepath).convert("RGB")
                 except Exception:
-                    selected_image = create_synthetic_component_image(defect_type=conf["type"], seed=conf["seed"])
+                    img = create_synthetic_component_image(defect_type=conf["type"], seed=conf["seed"])
             else:
-                selected_image = create_synthetic_component_image(defect_type=conf["type"], seed=conf["seed"])
-            selected_name = name
+                img = create_synthetic_component_image(defect_type=conf["type"], seed=conf["seed"])
+            st.session_state["active_image"] = img
+            st.session_state["active_name"] = name
 
 uploaded_file = st.file_uploader(
     "Or upload custom component photo (PNG / JPG):",
@@ -272,25 +275,24 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
     try:
-        selected_image = Image.open(uploaded_file).convert("RGB")
-        selected_name = uploaded_file.name
+        st.session_state["active_image"] = Image.open(uploaded_file).convert("RGB")
+        st.session_state["active_name"] = uploaded_file.name
     except Exception as e:
         st.error(f"Error opening image: {e}")
 
+selected_image = st.session_state.get("active_image")
+selected_name = st.session_state.get("active_name", "Component Sample")
+
 if selected_image is None:
-    filepath = os.path.join(SAMPLES_DIR, "defect_crack.png")
-    if os.path.exists(filepath):
-        try:
-            selected_image = Image.open(filepath).convert("RGB")
-        except Exception:
-            selected_image = create_synthetic_component_image(defect_type="crack", seed=42)
-    else:
-        selected_image = create_synthetic_component_image(defect_type="crack", seed=42)
+    selected_image = create_synthetic_component_image(defect_type="crack", seed=42)
+    selected_name = "Crack Defect"
+    st.session_state["active_image"] = selected_image
+    st.session_state["active_name"] = selected_name
 
 try:
     result = predict_defect(model, selected_image)
     is_defective = result["is_defective"]
-    confidence = result["confidence"]
+    confidence = float(min(max(result["confidence"], 0.0), 1.0))
 
     st.divider()
 
