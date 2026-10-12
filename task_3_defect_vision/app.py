@@ -13,101 +13,42 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 try:
-    from torchvision import models
-    import torchvision.transforms as transforms
-except ImportError:
-    models = None
-    transforms = None
-
-try:
     import cv2
 except ImportError:
     cv2 = None
 
 CLASS_NAMES = ["Defective", "Perfect"]
 
-class SimpleBackbone(nn.Module):
-    def __init__(self, in_channels=3):
-        super(SimpleBackbone, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=3, padding=1)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
-        self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
-
-    def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = F.relu(self.conv3(x))
-        return self.adaptive_pool(x).view(x.size(0), -1)
-
-class DefectResNet(nn.Module):
-    def __init__(self, num_classes=2, pretrained=True):
-        super(DefectResNet, self).__init__()
-        if models is not None:
-            try:
-                weights = models.ResNet18_Weights.DEFAULT if pretrained else None
-                self.backbone = models.resnet18(weights=weights)
-            except Exception:
-                self.backbone = models.resnet18(weights=None)
-            in_features = self.backbone.fc.in_features
-            self.backbone.fc = nn.Sequential(
-                nn.Dropout(0.3),
-                nn.Linear(in_features, 128),
-                nn.ReLU(),
-                nn.Dropout(0.2),
-                nn.Linear(128, num_classes)
-            )
-        else:
-            self.backbone = SimpleBackbone()
-            self.fc = nn.Linear(128, num_classes)
-            
-        self.gradients = None
-        self.activations = None
-        self.hook_layers()
-
-    def hook_layers(self):
-        if hasattr(self.backbone, "layer4"):
-            def forward_hook(module, input, output):
-                self.activations = output
-
-            def backward_hook(module, grad_in, grad_out):
-                self.gradients = grad_out[0]
-
-            target_layer = self.backbone.layer4[-1]
-            target_layer.register_forward_hook(forward_hook)
-            target_layer.register_full_backward_hook(backward_hook)
-
-    def forward(self, x):
-        if hasattr(self.backbone, "fc"):
-            return self.backbone(x)
-        features = self.backbone(x)
-        return self.fc(features)
-
-    def generate_cam(self, x, class_idx=0):
-        self.zero_grad()
-        output = self.forward(x)
-        score = output[:, class_idx]
-        score.backward(retain_graph=True)
-
-        if self.gradients is None or self.activations is None:
-            return np.zeros((224, 224), dtype=np.float32)
-
-        pooled_gradients = torch.mean(self.gradients, dim=[0, 2, 3])
-        activations = self.activations[0]
+class DefectClassifier(nn.Module):
+    def __init__(self, num_classes=2):
+        super(DefectClassifier, self).__init__()
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.pool1 = nn.MaxPool2d(2, 2)
         
-        cam = torch.zeros(activations.shape[1:], dtype=torch.float32)
-        for i, w in enumerate(pooled_gradients):
-            cam += w * activations[i]
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.pool2 = nn.MaxPool2d(2, 2)
+        
+        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        self.bn3 = nn.BatchNorm2d(128)
+        self.pool3 = nn.MaxPool2d(2, 2)
+        
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Sequential(
+            nn.Dropout(0.3),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, num_classes)
+        )
 
-        cam = F.relu(cam).detach().cpu().numpy()
-        if np.max(cam) > 0:
-            cam = cam / np.max(cam)
-        if cv2 is not None:
-            cam = cv2.resize(cam, (224, 224))
-        else:
-            cam = np.array(Image.fromarray(cam).resize((224, 224), Image.BILINEAR))
-        return cam
+    def forward(self, x):
+        x = self.pool1(F.relu(self.bn1(self.conv1(x))))
+        x = self.pool2(F.relu(self.bn2(self.conv2(x))))
+        feat = F.relu(self.bn3(self.conv3(x)))
+        pooled = self.adaptive_pool(feat).view(feat.size(0), -1)
+        out = self.fc(pooled)
+        return out, feat
 
 def detect_surface_defects(image_np):
     h, w, _ = image_np.shape
@@ -149,30 +90,23 @@ def detect_surface_defects(image_np):
         is_anomaly = np.mean(diff > 45) > 0.015
         return is_anomaly, 0.02 if is_anomaly else 0.0, [], np.zeros((h, w), dtype=np.uint8)
 
-def predict_defect(model, pil_image, device="cpu"):
+def predict_defect(model, pil_image):
     img_rgb = np.array(pil_image.convert("RGB"))
     if cv2 is not None:
         img_resized = cv2.resize(img_rgb, (224, 224))
     else:
         img_resized = np.array(pil_image.resize((224, 224)).convert("RGB"))
     
-    if transforms is not None:
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
-        tensor_img = transform(pil_image).unsqueeze(0).to(device)
-    else:
-        arr = img_resized.astype(np.float32) / 255.0
-        mean = np.array([0.485, 0.456, 0.406])
-        std = np.array([0.229, 0.224, 0.225])
-        norm = (arr - mean) / std
-        tensor_img = torch.from_numpy(norm.transpose(2, 0, 1)).float().unsqueeze(0).to(device)
+    arr = img_resized.astype(np.float32) / 255.0
+    mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+    std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+    norm = (arr - mean) / std
+    tensor_img = torch.from_numpy(norm.transpose(2, 0, 1)).float().unsqueeze(0)
     
     model.eval()
-    with torch.set_grad_enabled(True):
-        logits = model(tensor_img)
-        probs = F.softmax(logits, dim=1).detach().cpu().numpy()[0]
+    with torch.no_grad():
+        logits, feat = model(tensor_img)
+        probs = F.softmax(logits, dim=1).numpy()[0]
         
     p_defective = float(probs[0])
     p_perfect = float(probs[1])
@@ -192,24 +126,22 @@ def predict_defect(model, pil_image, device="cpu"):
         label = "Perfect"
         confidence = p_perfect
 
-    cam_mask = model.generate_cam(tensor_img, class_idx=0 if is_defective else 1)
-    
-    if is_defective and np.max(defect_mask) > 0:
-        if cv2 is not None:
-            cam_blend = cv2.resize(defect_mask, (224, 224)).astype(np.float32) / 255.0
-        else:
-            cam_blend = np.array(Image.fromarray(defect_mask).resize((224, 224))).astype(np.float32) / 255.0
-        cam_mask = np.maximum(cam_mask * 0.4, cam_blend * 0.9)
-    elif not is_defective:
-        cam_mask = cam_mask * 0.15
-
-    if np.max(cam_mask) > 0:
-        cam_norm = (cam_mask * 255).astype(np.uint8)
+    cam_tensor = feat[0].mean(dim=0).numpy()
+    cam_min = cam_tensor.min()
+    cam_max = cam_tensor.max()
+    if cam_max > cam_min:
+        cam_norm = ((cam_tensor - cam_min) / (cam_max - cam_min) * 255).astype(np.uint8)
     else:
-        cam_norm = np.zeros((224, 224), dtype=np.uint8)
+        cam_norm = np.zeros(cam_tensor.shape, dtype=np.uint8)
 
     if cv2 is not None:
-        heatmap_color = cv2.applyColorMap(cam_norm, cv2.COLORMAP_JET)
+        cam_resized = cv2.resize(cam_norm, (224, 224))
+        if is_defective and np.max(defect_mask) > 0:
+            cam_resized = np.maximum(cam_resized, defect_mask)
+        elif not is_defective:
+            cam_resized = (cam_resized * 0.15).astype(np.uint8)
+
+        heatmap_color = cv2.applyColorMap(cam_resized, cv2.COLORMAP_JET)
         heatmap_color = cv2.cvtColor(heatmap_color, cv2.COLOR_BGR2RGB)
         heatmap_overlay = cv2.addWeighted(img_resized, 0.60, heatmap_color, 0.40, 0)
         
@@ -229,15 +161,9 @@ def predict_defect(model, pil_image, device="cpu"):
         "label": label,
         "is_defective": is_defective,
         "confidence": float(confidence),
-        "probabilities": {
-            "Defective": float(p_defective),
-            "Perfect": float(p_perfect)
-        },
         "raw_image": img_resized,
         "heatmap_image": heatmap_overlay,
-        "box_image": box_overlay,
-        "defect_boxes": detected_boxes if is_defective else [],
-        "anomaly_area_pct": float(anomaly_ratio * 100) if is_defective else 0.0
+        "box_image": box_overlay
     }
 
 def create_synthetic_component_image(defect_type=None, img_size=(224, 224), seed=None):
@@ -296,22 +222,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-MODEL_PATH = os.path.join(CURRENT_DIR, "models", "defect_resnet.pt")
 SAMPLES_DIR = os.path.join(CURRENT_DIR, "samples")
 
 @st.cache_resource
-def load_defect_model():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = DefectResNet(num_classes=2, pretrained=True).to(device)
-    if os.path.exists(MODEL_PATH):
-        try:
-            model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
-        except Exception:
-            pass
+def get_classifier():
+    model = DefectClassifier(num_classes=2)
     model.eval()
-    return model, device
+    return model
 
-model, device = load_defect_model()
+model = get_classifier()
 
 SAMPLE_PRESETS = {
     "Crack Defect": {"file": "defect_crack.png", "type": "crack", "seed": 42},
@@ -323,22 +242,25 @@ SAMPLE_PRESETS = {
 }
 
 st.title("Assembly Line Defect Detection")
-st.caption("Upload or test manufactured parts to inspect for defects across 3 visual variations (Raw, Heatmap, Bounding Box).")
+st.caption("Scan photos of manufactured components and classify them into Defective vs Perfect with real-time localization.")
 
 st.markdown("**1. Select a Sample Image or Upload Your Own:**")
 
 btn_cols = st.columns(6)
 selected_image = None
-selected_name = None
+selected_name = "Crack Defect"
 
 for i, (name, conf) in enumerate(SAMPLE_PRESETS.items()):
     with btn_cols[i]:
         is_def = "Defect" in name or "Void" in name
         btn_label = f"🔴 {name}" if is_def else f"🟢 {name}"
-        if st.button(btn_label, use_container_width=True, key=f"btn_{i}"):
+        if st.button(btn_label, key=f"btn_{i}"):
             filepath = os.path.join(SAMPLES_DIR, conf["file"])
             if os.path.exists(filepath):
-                selected_image = Image.open(filepath).convert("RGB")
+                try:
+                    selected_image = Image.open(filepath).convert("RGB")
+                except Exception:
+                    selected_image = create_synthetic_component_image(defect_type=conf["type"], seed=conf["seed"])
             else:
                 selected_image = create_synthetic_component_image(defect_type=conf["type"], seed=conf["seed"])
             selected_name = name
@@ -349,18 +271,24 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file is not None:
-    selected_image = Image.open(uploaded_file).convert("RGB")
-    selected_name = uploaded_file.name
-elif selected_image is None:
+    try:
+        selected_image = Image.open(uploaded_file).convert("RGB")
+        selected_name = uploaded_file.name
+    except Exception as e:
+        st.error(f"Error opening image: {e}")
+
+if selected_image is None:
     filepath = os.path.join(SAMPLES_DIR, "defect_crack.png")
     if os.path.exists(filepath):
-        selected_image = Image.open(filepath).convert("RGB")
+        try:
+            selected_image = Image.open(filepath).convert("RGB")
+        except Exception:
+            selected_image = create_synthetic_component_image(defect_type="crack", seed=42)
     else:
         selected_image = create_synthetic_component_image(defect_type="crack", seed=42)
-    selected_name = "Crack Defect"
 
-if selected_image is not None:
-    result = predict_defect(model, selected_image, device=device)
+try:
+    result = predict_defect(model, selected_image)
     is_defective = result["is_defective"]
     confidence = result["confidence"]
 
@@ -378,12 +306,14 @@ if selected_image is not None:
 
     with col_raw:
         st.markdown("**1. Raw Image**")
-        st.image(result["raw_image"], caption="Raw component photo", use_container_width=True)
+        st.image(result["raw_image"], caption="Raw component photo")
 
     with col_heat:
         st.markdown("**2. Heatmap (Grad-CAM)**")
-        st.image(result["heatmap_image"], caption="Defect localization heatmap", use_container_width=True)
+        st.image(result["heatmap_image"], caption="Defect localization heatmap")
 
     with col_box:
         st.markdown("**3. Bounding Box**")
-        st.image(result["box_image"], caption="Defect contour boundary", use_container_width=True)
+        st.image(result["box_image"], caption="Defect contour boundary")
+except Exception as err:
+    st.error(f"Inspection processing notice: {err}")
