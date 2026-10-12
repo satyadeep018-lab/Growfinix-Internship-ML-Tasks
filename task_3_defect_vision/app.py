@@ -14,7 +14,7 @@ from PIL import Image
 try:
     from dataset import create_synthetic_component_image
     from model import DefectResNet, predict_defect
-except ImportError:
+except Exception:
     from task_3_defect_vision.dataset import create_synthetic_component_image
     from task_3_defect_vision.model import DefectResNet, predict_defect
 
