@@ -2,15 +2,21 @@ import os
 import sys
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-if CURRENT_DIR not in sys.path:
-    sys.path.insert(0, CURRENT_DIR)
+PARENT_DIR = os.path.dirname(CURRENT_DIR)
+for p in (CURRENT_DIR, PARENT_DIR):
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 import torch
 import streamlit as st
 from PIL import Image
 
-from dataset import create_synthetic_component_image
-from model import DefectResNet, predict_defect
+try:
+    from dataset import create_synthetic_component_image
+    from model import DefectResNet, predict_defect
+except ImportError:
+    from task_3_defect_vision.dataset import create_synthetic_component_image
+    from task_3_defect_vision.model import DefectResNet, predict_defect
 
 st.set_page_config(
     page_title="Assembly Line Defect Detection",
