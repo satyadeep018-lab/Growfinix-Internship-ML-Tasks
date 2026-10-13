@@ -42,3 +42,4 @@ data/cache/
 Thumbs.db
 .vscode/
 .idea/
+!models/best_automl_model.pkl
