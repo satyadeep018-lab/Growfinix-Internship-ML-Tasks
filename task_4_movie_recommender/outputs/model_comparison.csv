@@ -1,0 +1,4 @@
+Model,RMSE,MAE
+Random (baseline),1.4313,1.1427
+Bias baseline,0.8785,0.6778
+SVD (matrix factorization),0.8828,0.6767
