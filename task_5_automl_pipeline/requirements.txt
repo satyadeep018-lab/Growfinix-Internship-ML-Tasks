@@ -1,5 +1,3 @@
-# Minimal, zero-conflict dependencies for AutoML Pipeline
-# Tested on Python 3.11 with Streamlit Cloud & local environments
 streamlit>=1.28.0
 pandas>=2.0.0
 numpy>=1.24.0
