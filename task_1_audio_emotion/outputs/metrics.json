@@ -1,0 +1,34 @@
+{
+  "angry": {
+    "precision": 0.8604651162790697,
+    "recall": 0.7708333333333334,
+    "f1-score": 0.8131868131868132,
+    "support": 48.0
+  },
+  "happy": {
+    "precision": 0.6122448979591837,
+    "recall": 0.625,
+    "f1-score": 0.6185567010309279,
+    "support": 48.0
+  },
+  "sad": {
+    "precision": 0.6923076923076923,
+    "recall": 0.75,
+    "f1-score": 0.72,
+    "support": 48.0
+  },
+  "accuracy": 0.7152777777777778,
+  "macro avg": {
+    "precision": 0.7216725688486486,
+    "recall": 0.7152777777777778,
+    "f1-score": 0.7172478380725803,
+    "support": 144.0
+  },
+  "weighted avg": {
+    "precision": 0.7216725688486485,
+    "recall": 0.7152777777777778,
+    "f1-score": 0.7172478380725804,
+    "support": 144.0
+  },
+  "baseline_logreg_accuracy": 0.5833333333333334
+}

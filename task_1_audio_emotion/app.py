@@ -1,117 +1,57 @@
-import os
-import io
-import json
+import io, json
+from pathlib import Path
 import numpy as np
+import pandas as pd
 import streamlit as st
+import librosa.display
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import soundfile as sf
+import tensorflow as tf
+from features import load_mel, SR, HOP
 
-from acoustic_features import (
-    load_and_standardize_audio,
-    compute_log_mel_spectrogram,
-    extract_explainability_features
-)
-
-st.set_page_config(
-    page_title="Spoken Emotion Recognition",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
-
-MODEL_PATH = "models/emotion_cnn.keras"
-LABELS_PATH = "models/labels.json"
-SAMPLES_DIR = "data/samples"
-EMOTIONS = ["Angry", "Happy", "Sad"]
+BASE = Path(__file__).parent
+NAMES = ["angry", "happy", "sad"]
+st.set_page_config(page_title="Spoken Emotion Recognition", layout="wide")
 
 @st.cache_resource
-def try_load_cnn_model():
-    if not os.path.exists(MODEL_PATH):
-        return None
-    try:
-        import tensorflow as tf
-        model = tf.keras.models.load_model(MODEL_PATH)
-        return model
-    except Exception:
-        return None
+def get_model():
+    return tf.keras.models.load_model(BASE / "models" / "emotion_cnn.keras")
 
-def plot_unified_acoustic_graphs(mel_db, explanation):
-    times = explanation["times"]
-    f0 = explanation["f0"]
-    rms = explanation["rms"]
+norm = json.load(open(BASE / "outputs" / "norm.json"))
+metrics = json.load(open(BASE / "outputs" / "metrics.json"))
 
-    fig, axes = plt.subplots(2, 1, figsize=(8, 4.6), gridspec_kw={"height_ratios": [1, 1]})
-    axes[0].imshow(mel_db, origin="lower", aspect="auto", cmap="magma", extent=[0, 3.0, 0, 8000])
-    axes[0].set_title("2D Log-Mel Spectrogram (Frequency over Time)", fontsize=10, fontweight="bold", pad=5)
-    axes[0].set_ylabel("Freq (Hz)", fontsize=9)
-    axes[0].tick_params(labelsize=8)
+st.title("Spoken Emotion Recognition (Mel-Spectrogram CNN)")
+st.caption("Trained on RAVDESS acted speech (angry, happy, sad). Tested on 6 actors the model never saw during training.")
+c1, c2, c3 = st.columns(3)
+c1.metric("Test accuracy", f"{metrics['accuracy']:.1%}")
+c2.metric("Macro F1", f"{metrics['macro avg']['f1-score']:.1%}")
+c3.metric("Simple baseline accuracy", f"{metrics['baseline_logreg_accuracy']:.1%}")
+st.subheader("Confusion matrix (test set)")
+st.dataframe(pd.read_csv(BASE / "outputs" / "confusion_matrix.csv", index_col=0), width="stretch")
 
-    ax_energy = axes[1]
-    ax_pitch = ax_energy.twinx()
-    line1 = ax_energy.plot(times[:len(rms)], rms, color="#38bdf8", lw=1.8, label="Energy (RMS)")
-    ax_energy.set_ylabel("Energy", color="#38bdf8", fontsize=9)
-    ax_energy.tick_params(axis="y", labelcolor="#38bdf8", labelsize=8)
-    ax_energy.set_xlabel("Time (seconds)", fontsize=9)
-    ax_energy.tick_params(axis="x", labelsize=8)
-    ax_energy.grid(True, linestyle="--", alpha=0.3)
+st.subheader("Try it")
+samples = sorted((BASE / "samples").glob("*.wav"))
+choice = st.selectbox("Pick a sample clip", ["(none)"] + [s.name for s in samples])
+up = st.file_uploader("...or upload a short .wav of speech", type=["wav"])
 
-    line2 = ax_pitch.plot(times[:len(f0)], f0, color="#ef4444", lw=1.8, label="Pitch (Hz)")
-    ax_pitch.set_ylabel("Pitch (Hz)", color="#ef4444", fontsize=9)
-    ax_pitch.tick_params(axis="y", labelcolor="#ef4444", labelsize=8)
+data = None
+if up is not None:
+    data = up.getvalue()
+elif choice != "(none)":
+    data = (BASE / "samples" / choice).read_bytes()
 
-    lines = line1 + line2
-    labels = [l.get_label() for l in lines]
-    axes[1].legend(lines, labels, loc="upper right", fontsize=8)
-    axes[1].set_title("Acoustic Dynamics: Pitch (F0) & Loudness Energy", fontsize=10, fontweight="bold", pad=5)
-
-    plt.tight_layout()
-    return fig
-
-st.title("Spoken Emotion Recognition")
-st.caption("Deep Learning Audio Classifier · Log-Mel Spectrograms & Acoustic Feature Analysis")
-
-cnn_model = try_load_cnn_model()
-
-st.subheader("1. Audio Input")
-tab_record, tab_upload = st.tabs(["🎙️ Record Voice", "📁 Upload WAV"])
-selected_audio_source = None
-audio_bytes = None
-
-with tab_record:
-    try:
-        recorded_audio = st.audio_input("Click microphone to record your voice:")
-        if recorded_audio is not None:
-            audio_bytes = recorded_audio.read()
-            selected_audio_source = io.BytesIO(audio_bytes)
-    except AttributeError:
-        st.info("Record audio directly or upload below.")
-
-with tab_upload:
-    uploaded_file = st.file_uploader("Upload audio file (.wav)", type=["wav"])
-    if uploaded_file is not None:
-        audio_bytes = uploaded_file.read()
-        selected_audio_source = io.BytesIO(audio_bytes)
-
-if selected_audio_source is not None:
-    y, sr = load_and_standardize_audio(selected_audio_source)
-    st.audio(audio_bytes, format="audio/wav")
-
-    mel_db = compute_log_mel_spectrogram(y, sr)
-    explanation = extract_explainability_features(y, sr)
-
-    st.subheader("2. Model Prediction")
-    if cnn_model is not None:
-        input_tensor = np.expand_dims(np.expand_dims(mel_db, axis=0), axis=-1)
-        probs = cnn_model.predict(input_tensor, verbose=0)[0]
-    else:
-        probs = explanation["heuristic_probabilities"]
-
-    top_idx = int(np.argmax(probs))
-    pred_label = EMOTIONS[top_idx]
-    pred_conf = float(probs[top_idx])
-
-    st.success(f"**Predicted Emotion: {pred_label} ({pred_conf * 100:.1f}% Confidence)**")
-    st.progress(pred_conf)
-
-    st.subheader("3. Acoustic Explainability")
-    fig = plot_unified_acoustic_graphs(mel_db, explanation)
+if data is not None:
+    st.audio(data, format="audio/wav")
+    mel_db = load_mel(io.BytesIO(data))
+    fig, ax = plt.subplots(figsize=(7, 3))
+    img = librosa.display.specshow(mel_db, sr=SR, hop_length=HOP, x_axis="time", y_axis="mel", ax=ax)
+    fig.colorbar(img, ax=ax, format="%+2.0f dB")
+    ax.set_title("Mel spectrogram (what the CNN sees)")
     st.pyplot(fig)
+    x = ((mel_db - norm["mean"]) / norm["std"]).astype("float32")[None, ..., None]
+    probs = get_model().predict(x, verbose=0)[0]
+    st.success(f"Prediction: {NAMES[int(probs.argmax())]} (confidence {probs.max():.1%})")
+    st.bar_chart(pd.DataFrame({"probability": probs}, index=NAMES))
+
+st.caption("Limitations: acted emotions from 24 actors, only 3 emotions, 3-second clips. Real-world voices would likely score lower.")
