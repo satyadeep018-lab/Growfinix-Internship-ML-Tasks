@@ -1,54 +1,46 @@
+# Task 3: Assembly Line Defect Detection (Computer Vision)
 
-### 2. Task 3 `task_3_defect_vision/README.md`
+Part of the Growfinix Technology Machine Learning Internship (Month 2).
 
-```markdown
-# Assembly Line Defect Detection (Task 3)
+Classifies photos of manufactured parts as **Defective** or **OK** using transfer learning: an ImageNet-pretrained ResNet-18 fine-tuned in PyTorch.
 
-**Growfinix Technology 2-Month Machine Learning Internship — Month 2: Deep Learning, Audio & NLP**
+## Dataset
+The `casting_512x512` version of Kaggle's "Real-life industrial dataset of casting product" (top-view photos of submersible pump impeller castings, about 1,300 images with `def_front` and `ok_front` classes). The dataset is not stored in this repo. Download it from Kaggle and unzip it into `data/`. Six sample images are included in `samples/` for the demo app. Please check the dataset's license on its Kaggle page.
 
----
+## Method
+- Stratified 80/20 split (seed 42): 1,040 training and 260 test images.
+- Training augmentation: random horizontal flip and small rotation. Images are resized to 224x224 and normalized with ImageNet statistics.
+- Phase 1: freeze the pretrained ResNet-18 backbone and train only a new 2-class head (3 epochs).
+- Phase 2: unfreeze the last block (`layer4`) and fine-tune it with a lower learning rate (2 epochs).
+- The test set is used once, for the final evaluation only.
 
-## 📌 Project Overview
-In modern automated manufacturing (automotive parts, semiconductor wafers, smartphone chassis, and CNC metal fabrication), manual visual inspection is slow, fatigue-prone, and inconsistent.
+## Results
+Held-out test set (260 images):
 
-This project delivers an automated visual quality control deep learning system built with **PyTorch (ResNet-18 Transfer Learning)** and **OpenCV**. It scans surface photographs of components in real-time, classifies them as **Defective** or **Perfect**, and pinpoints defect locations using **Class Activation Mapping (CAM)** and contour localization before shipping.
+| Class | Precision | Recall | F1 | Images |
+|---|---|---|---|---|
+| Defective | 1.0000 | 0.9872 | 0.9935 | 156 |
+| OK | 0.9811 | 1.0000 | 0.9905 | 104 |
 
-- 🚨 **Defective (Reject / Quarantine)**: Surface cracks, micro-scratches, pinhole voids, pitting, or burrs.
-- 🛡️ **Perfect (Approved for Shipment)**: Pristine CNC machined finish, smooth polished alloy, or brushed metal within tolerance.
+Overall accuracy: 0.9923
 
-The project features a dedicated **Streamlit web application** supporting direct sample inspection across 3 distinct variations:
-1. **Raw Image**: Original component photo.
-2. **Heatmap (Grad-CAM)**: Feature activation map highlighting defect neural focus.
-3. **Bounding Box**: Flaw contour box isolating the exact defect boundary.
+Confusion matrix: 154 of the 156 defective parts were caught and 2 were missed. All 104 OK parts were classified correctly. In a factory, a missed defect is the costly error, so defect recall is the key number.
 
----
+## Limitations
+- The test set is small (260 images), so the scores could shift by a point or two with a different split.
+- All photos show the same type of part under very consistent lighting and angle, so accuracy on real production lines would likely be lower.
+- This is a learning project and not a certified inspection system.
 
-## 🛠️ Tech Stack & Architecture
-- **Language**: Python 3.11
-- **Deep Learning**: PyTorch (`torch.nn`, `torchvision.models.resnet18`, Transfer Learning)
-- **Computer Vision**: OpenCV (`opencv-python-headless`), PIL (Pillow)
-- **Evaluation**: Scikit-Learn (Precision, Recall, F1-Score, Confusion Matrix), Matplotlib
-- **Web Interface**: Streamlit
+## Run it
+Use Python 3.11.
 
-```text
-┌────────────────────────────────────────────────────────┐
-│                   PIPELINE WORKFLOW                    │
-├────────────────────────────────────────────────────────┤
-│  1. Manufacturing Image Acquisition                    │
-│     └── Sample Presets or Custom Drag-and-Drop Upload  │
-│  2. Vision Preprocessing & Normalization               │
-│     ├── Resize to 224x224 pixels                       │
-│     └── Standardize with ImageNet Mean & Std           │
-│  3. ResNet-18 Transfer Learning Classifier             │
-│     ├── Deep Residual Feature Extraction (Layer 1-4)   │
-│     ├── Custom Classification Head with Dropout        │
-│     └── Softmax Binary Probability Distribution        │
-│  4. Defect Localization & Explainability               │
-│     ├── Grad-CAM Feature Map Activation Weights        │
-│     ├── OpenCV Jet Colormap Heatmap Overlay            │
-│     └── Contour Anomaly Bounding Box Extraction        │
-│  5. Streamlit Unified Diagnostic Dashboard             │
-│     ├── Real-time Defective vs Perfect Badge           │
-│     ├── Confidence Progress Bar & Score                │
-│     └── 3 Inspection Variations (Raw, Heatmap, Box)    │
-└────────────────────────────────────────────────────────┘
+    pip install -r requirements.txt
+    python train_defect.py
+    streamlit run app.py
+
+## Files
+- `train_defect.py`: training and evaluation script
+- `app.py`: Streamlit app (sample images or your own upload)
+- `models/defect_resnet18.pt`: trained weights
+- `outputs/`: test metrics and confusion matrix
+- `samples/`: demo images
