@@ -3,3 +3,6 @@ env/
 __pycache__/
 *.pyc
 outputs/*.png
+venv/
+data/
+!models/phishing_lstm.pt

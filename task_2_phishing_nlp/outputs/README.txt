@@ -1,1 +1,0 @@
-Run `python train.py` and `python evaluate.py` to save loss curves and confusion matrix charts here!
