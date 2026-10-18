@@ -1,5 +1,7 @@
 # Task 1: Spoken Emotion Recognition (Audio + CNN)
 
+**Live demo:** https://growfinix-spoken-emotion-task-1.streamlit.app/
+
 Part of the Growfinix Technology Machine Learning Internship (Month 2).
 
 Converts speech recordings (.wav) into mel spectrograms and classifies the speaker's emotion as **angry**, **happy** or **sad** with a Convolutional Neural Network (TensorFlow/Keras, librosa for audio processing).

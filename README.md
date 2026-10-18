@@ -1,16 +1,16 @@
 # Growfinix Technology: Machine Learning Internship (Month 2: Deep Learning, Audio and NLP)
 
-Five end-to-end projects built for the Growfinix Technology Machine Learning internship. Each project trains on a real, public dataset, reports honest held-out results, and has a Streamlit demo app.
+Five end-to-end projects built for the Growfinix Technology Machine Learning internship. Each project trains on a real, public dataset, reports honest held-out results, and has a live Streamlit demo.
 
 ## Projects
 
-| # | Project | Dataset | Model | Key result (held-out data) |
-|---|---|---|---|---|
-| 1 | Spoken Emotion Recognition | RAVDESS speech (angry, happy, sad; 576 clips) | CNN on mel spectrograms (TensorFlow/Keras, librosa) | Accuracy 71.5% on 6 unseen actors |
-| 2 | Spam and Phishing Email Detection | Kaggle Phishing Email Dataset (82,078 emails) | Bidirectional LSTM (PyTorch, NLTK) | Accuracy 98.4% (simple baseline 98.2%) |
-| 3 | Assembly Line Defect Detection | Kaggle casting product images (about 1,300 photos) | ResNet-18 transfer learning (PyTorch) | Accuracy 99.2%, defect recall 98.7% |
-| 4 | Collaborative Filtering Movie Recommender | MovieLens ml-latest-small (100k ratings) | SVD matrix factorization (Scikit-Surprise) | RMSE 0.8828 (bias baseline 0.8785) |
-| 5 | Automating Machine Learning (AutoML) | scikit-learn breast cancer dataset (569 patients) | PyCaret compare_models (13 models) | Best: Extra Trees Classifier, accuracy 95.6%, F1 0.966 |
+| # | Project | Dataset | Model | Key result (held-out data) | Live demo |
+|---|---|---|---|---|---|
+| 1 | Spoken Emotion Recognition | RAVDESS speech (angry, happy, sad; 576 clips) | CNN on mel spectrograms (TensorFlow/Keras, librosa) | Accuracy 71.5% on 6 unseen actors | [Open app](https://growfinix-spoken-emotion-task-1.streamlit.app/) |
+| 2 | Spam and Phishing Email Detection | Kaggle Phishing Email Dataset (82,078 emails) | Bidirectional LSTM (PyTorch, NLTK) | Accuracy 98.4% (simple baseline 98.2%) | [Open app](https://growfinix-email-phishing-task-2.streamlit.app/) |
+| 3 | Assembly Line Defect Detection | Kaggle casting product images (about 1,300 photos) | ResNet-18 transfer learning (PyTorch) | Accuracy 99.2%, defect recall 98.7% | [Open app](https://growfinix-task3-defect-vision.streamlit.app/) |
+| 4 | Collaborative Filtering Movie Recommender | MovieLens ml-latest-small (100k ratings) | SVD matrix factorization (Scikit-Surprise) | RMSE 0.8828 (bias baseline 0.8785) | [Open app](https://growfinix-movie-recommender-task-4.streamlit.app/) |
+| 5 | Automating Machine Learning (AutoML) | scikit-learn breast cancer dataset (569 patients) | PyCaret compare_models (13 models) | Best: Extra Trees Classifier, accuracy 95.6%, F1 0.966 | [Open app](https://growfinix-automl-task-5.streamlit.app/) |
 
 Each task folder has its own README with the method, results table and limitations.
 

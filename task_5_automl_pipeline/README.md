@@ -1,5 +1,7 @@
 # Task 5: Automating Machine Learning (AutoML)
 
+**Live demo:** https://growfinix-automl-task-5.streamlit.app/
+
 Part of the Growfinix Technology Machine Learning Internship (Month 2).
 
 This task uses PyCaret to train, evaluate and compare many classification models automatically, then picks the best one and serves it in a Streamlit app.

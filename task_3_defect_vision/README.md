@@ -1,5 +1,7 @@
 # Task 3: Assembly Line Defect Detection (Computer Vision)
 
+**Live demo:** https://growfinix-task3-defect-vision.streamlit.app/
+
 Part of the Growfinix Technology Machine Learning Internship (Month 2).
 
 Classifies photos of manufactured parts as **Defective** or **OK** using transfer learning: an ImageNet-pretrained ResNet-18 fine-tuned in PyTorch.

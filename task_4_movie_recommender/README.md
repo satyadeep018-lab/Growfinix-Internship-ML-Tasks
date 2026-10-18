@@ -1,5 +1,7 @@
 # Task 4: Collaborative Filtering Movie Recommender
 
+**Live demo:** https://growfinix-movie-recommender-task-4.streamlit.app/
+
 Part of the Growfinix Technology Machine Learning Internship (Month 2).
 
 A Netflix-style recommender that suggests new movies to a user based only on their past ratings and the ratings of similar users, using matrix factorization (SVD) from Scikit-Surprise.

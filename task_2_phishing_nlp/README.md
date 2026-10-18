@@ -1,5 +1,7 @@
 # Task 2: Spam and Phishing Email Detection (NLP)
 
+**Live demo:** https://growfinix-email-phishing-task-2.streamlit.app/
+
 Part of the Growfinix Technology Machine Learning Internship (Month 2).
 
 Classifies email text as **Phishing** or **Safe** with a bidirectional LSTM (PyTorch), using NLTK for text preprocessing.
