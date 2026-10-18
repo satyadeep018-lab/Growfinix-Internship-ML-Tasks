@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+import cv2
+import numpy as np
 import pandas as pd
 import streamlit as st
 import torch
@@ -48,7 +50,11 @@ elif choice != "(none)":
     img = Image.open(BASE / "samples" / choice)
 
 if img is not None:
-    st.image(img, width=300)
+    gray = cv2.cvtColor(np.array(img.convert("RGB")), cv2.COLOR_RGB2GRAY)
+    edges = cv2.Canny(cv2.GaussianBlur(gray, (5, 5), 0), 50, 150)
+    col_a, col_b = st.columns(2)
+    col_a.image(img, caption="Input image", width=300)
+    col_b.image(edges, caption="OpenCV Canny edges (surface texture)", width=300)
     with torch.no_grad():
         probs = torch.softmax(load_model()(tf(img.convert("RGB")).unsqueeze(0)), 1)[0]
     label = NAMES[int(probs.argmax())]

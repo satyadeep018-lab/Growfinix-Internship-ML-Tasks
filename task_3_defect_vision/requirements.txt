@@ -4,3 +4,4 @@ torchvision
 pillow
 pandas
 streamlit
+opencv-python-headless

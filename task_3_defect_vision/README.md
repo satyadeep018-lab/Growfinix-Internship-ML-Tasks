@@ -14,6 +14,7 @@ The `casting_512x512` version of Kaggle's "Real-life industrial dataset of casti
 - Training augmentation: random horizontal flip and small rotation. Images are resized to 224x224 and normalized with ImageNet statistics.
 - Phase 1: freeze the pretrained ResNet-18 backbone and train only a new 2-class head (3 epochs).
 - Phase 2: unfreeze the last block (`layer4`) and fine-tune it with a lower learning rate (2 epochs).
+- The app uses OpenCV (Gaussian blur and Canny edge detection) to show an edge view of the part next to the prediction. This view is for inspection only. The classifier itself uses the torchvision pipeline.
 - The test set is used once, for the final evaluation only.
 
 ## Results
