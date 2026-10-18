@@ -1,61 +1,51 @@
+# Growfinix Technology: Machine Learning Internship (Month 2: Deep Learning, Audio and NLP)
 
-# Growfinix Technology — 02 Month Machine Learning Internship
+Five end-to-end projects built for the Growfinix Technology Machine Learning internship. Each project trains on a real, public dataset, reports honest held-out results, and has a Streamlit demo app.
 
-Repository containing end-to-end Machine Learning and Deep Learning projects completed as part of the **Growfinix Technology 2-Month Machine Learning Internship (Month 2: Deep Learning, Audio & NLP)**.
+## Projects
 
----
+| # | Project | Dataset | Model | Key result (held-out data) |
+|---|---|---|---|---|
+| 1 | Spoken Emotion Recognition | RAVDESS speech (angry, happy, sad; 576 clips) | CNN on mel spectrograms (TensorFlow/Keras, librosa) | Accuracy 71.5% on 6 unseen actors |
+| 2 | Spam and Phishing Email Detection | Kaggle Phishing Email Dataset (82,078 emails) | Bidirectional LSTM (PyTorch, NLTK) | Accuracy 98.4% (simple baseline 98.2%) |
+| 3 | Assembly Line Defect Detection | Kaggle casting product images (about 1,300 photos) | ResNet-18 transfer learning (PyTorch) | Accuracy 99.2%, defect recall 98.7% |
+| 4 | Collaborative Filtering Movie Recommender | MovieLens ml-latest-small (100k ratings) | SVD matrix factorization (Scikit-Surprise) | RMSE 0.8828 (bias baseline 0.8785) |
+| 5 | Automating Machine Learning (AutoML) | scikit-learn breast cancer dataset (569 patients) | PyCaret compare_models (13 models) | Best: Extra Trees Classifier, accuracy 95.6%, F1 0.966 |
 
-## 📋 Internship Tasks Matrix
+Each task folder has its own README with the method, results table and limitations.
 
-| # | Task | Domain | Core Tech Stack | Status | Directory |
-| :-: | :--- | :--- | :--- | :-: | :--- |
-| **01** | **Spoken Emotion Recognition** | Audio & Deep Learning | Python, Librosa, TensorFlow/Keras CNN, Streamlit | ✅ **Completed** | [`task_1_audio_emotion/`](./task_1_audio_emotion) |
-| **02** | **Spam & Phishing Email Detection** | Cyber-Security & NLP | Python, NLTK, PyTorch (LSTMs), Streamlit | ✅ **Completed** | [`task_2_phishing_nlp/`](./task_2_phishing_nlp) |
-| **03** | **Assembly Line Defect Detection** | Manufacturing & Computer Vision | Python, OpenCV, PyTorch (ResNet), Streamlit | ✅ **Completed** | [`task_3_defect_vision/`](./task_3_defect_vision) |
-| **04** | **Collaborative Filtering Movie Recommender** | Entertainment & RecSys | Python, Scikit-Surprise, Pandas, Streamlit | ⏳ *Upcoming* | `task_4_movie_recommender/` |
-| **05** | **Automating Machine Learning (AutoML)** | Workflow Automation | Python, PyCaret / Scikit-Learn, Streamlit | ⏳ *Upcoming* | `task_5_automl_pipeline/` |
+## Repository structure
 
----
+    Growfinix-Internship-ML-Tasks/
+      task_1_audio_emotion/       app.py, features.py, train_emotion.py, models/, outputs/, samples/
+      task_2_phishing_nlp/        app.py, text_utils.py, train_phishing.py, models/, outputs/
+      task_3_defect_vision/       app.py, train_defect.py, models/, outputs/, samples/
+      task_4_movie_recommender/   app.py, movielens.py, train_surprise.py, models/, outputs/
+      task_5_automl_pipeline/     app.py, train_automl.py, models/, outputs/
+      .python-version             Python 3.11
+      README.md
 
-## 📁 Repository Structure
+Large datasets are not stored in the repo. Each task README says where to download its data.
 
-```text
-Growfinix-Internship-Tasks/
-│
-├── task_1_audio_emotion/          # [Completed] Task 1: Spoken Emotion Recognition from Audio
-│   ├── app.py                     # Streamlit application with live mic & explainability
-│   ├── model.py                   # 2D Convolutional Neural Network architecture
-│   ├── acoustic_features.py       # Pitch (F0), RMS Energy & Spectrogram extraction
-│   ├── prepare_data.py            # Audio data preprocessing pipeline
-│   ├── train.py                   # Training pipeline with loss/accuracy curves
-│   ├── evaluate.py                # Evaluation report & confusion matrix heatmap
-│   ├── requirements.txt           # Task 1 dependencies
-│   ├── .python-version            # Pinned to Python 3.11 for Streamlit Cloud
-│   └── README.md                  # Task 1 technical documentation
-│
-├── task_2_phishing_nlp/           # [Completed] Task 2: Spam & Phishing Email Detection (NLP)
-│   ├── app.py                     # Streamlit application with text & URL scanner
-│   ├── model.py                   # PyTorch Bidirectional LSTM architecture & risk heuristics
-│   ├── dataset.py                 # Corpus builder & PyTorch DataLoader
-│   ├── train.py                   # Training loop with BCE loss, accuracy tracking & plots
-│   ├── evaluate.py                # Precision, Recall, F1, ROC-AUC report & confusion matrix
-│   ├── requirements.txt           # Task 2 dependencies (PyTorch, NLTK, Streamlit)
-│   ├── .python-version            # Pinned to Python 3.11
-│   ├── .gitignore                 # Lightweight filter blocking large files/caches
-│   └── README.md                  # Task 2 technical documentation & LinkedIn script
-│
-├── task_3_defect_vision/          # [Completed] Task 3: Assembly Line Defect Detection (Vision)
-│   ├── app.py                     # Streamlit app with sample presets & 3 variations
-│   ├── model.py                   # ResNet-18 Transfer Learning & Class Activation Mapping (CAM)
-│   ├── dataset.py                 # Industrial component benchmark generator & DataLoader
-│   ├── train.py                   # PyTorch training loop with loss & accuracy plots
-│   ├── evaluate.py                # Precision, Recall, F1 report & confusion matrix plot
-│   ├── requirements.txt           # Task 3 dependencies (OpenCV headless, PyTorch, PIL)
-│   ├── .python-version            # Pinned to Python 3.11
-│   ├── .gitignore                 # Blocks heavy image dumps and cache directories
-│   └── README.md                  # Task 3 technical documentation & LinkedIn script
-│
-├── requirements.txt               # Unified project dependencies
-├── .python-version                # Python 3.11 environment configuration
-├── .gitignore                     # Git ignore rules (prevents heavy datasets/caches)
-└── README.md                      # Master repository documentation (this file)
+## Run a project
+
+Use Python 3.11. Every task has its own `requirements.txt`:
+
+    cd task_N_name
+    pip install -r requirements.txt
+    streamlit run app.py
+
+To retrain, download the dataset described in that task's README and run its training script.
+
+## Honest notes
+
+- Task 1: about 71% accuracy on speakers the model never saw. The test set is small (144 clips) and the emotions are acted, so real-world accuracy would likely be lower.
+- Task 2: the LSTM beats a simple TF-IDF baseline by only a small margin, so the dataset is fairly easy, and it mixes sources with different writing styles.
+- Task 3: very uniform photos of a single part, so real production lines would be harder. The test set is small (260 images).
+- Task 4: on this small dataset the bias baseline is about as good as SVD in RMSE (SVD is slightly better in MAE).
+- Task 5: 569 rows is small, so the scores are good but not definitive.
+- All five are learning projects and not production systems.
+
+## Datasets and credits
+
+RAVDESS (Livingstone and Russo, 2018), Kaggle Phishing Email Dataset (Al-Subaiey et al., 2024), Kaggle Real-life Industrial Dataset of Casting Product (Dabhi), MovieLens (GroupLens), scikit-learn breast cancer dataset. Please check each dataset's license on its source page.
