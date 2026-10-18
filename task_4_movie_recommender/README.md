@@ -42,3 +42,12 @@ Use Python 3.11. On Windows, Scikit-Surprise needs C++ build tools to install.
 - `app.py`: Streamlit app
 - `models/`: saved SVD model
 - `outputs/`: model comparison table
+
+## Screenshots
+
+![Live app screenshot 1](screenshots/app_1.png)
+
+![Live app screenshot 2](screenshots/app_2.png)
+
+![Live app screenshot 3](screenshots/app_3.png)
+
