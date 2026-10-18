@@ -45,3 +45,12 @@ Use Python 3.11 (PyCaret does not support 3.12 or newer).
 - `app.py`: Streamlit app
 - `models/`: saved model
 - `outputs/`: leaderboard and test metrics
+
+## Screenshots
+
+![Live app screenshot 1](screenshots/app_1.png)
+
+![Live app screenshot 2](screenshots/app_2.png)
+
+![Live app screenshot 3](screenshots/app_3.png)
+
