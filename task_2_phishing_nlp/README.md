@@ -46,3 +46,12 @@ Use Python 3.11.
 - `app.py`: Streamlit app
 - `models/`: trained LSTM weights and vocabulary
 - `outputs/`: test metrics and confusion matrix
+
+## Screenshots
+
+![Live app screenshot 1](screenshots/app_1.png)
+
+![Live app screenshot 2](screenshots/app_2.png)
+
+![Live app screenshot 3](screenshots/app_3.png)
+
