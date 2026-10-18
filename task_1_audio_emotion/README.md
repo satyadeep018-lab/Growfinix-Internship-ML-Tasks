@@ -49,3 +49,12 @@ Use Python 3.11.
 - `models/emotion_cnn.keras`: trained model
 - `outputs/`: test metrics, confusion matrix and normalisation constants
 - `samples/`: demo clips
+
+## Screenshots
+
+![Live app screenshot 1](screenshots/app_1.png)
+
+![Live app screenshot 2](screenshots/app_2.png)
+
+![Live app screenshot 3](screenshots/app_3.png)
+
