@@ -7,7 +7,7 @@ Part of the Growfinix Technology Machine Learning Internship (Month 2).
 A Netflix-style recommender that suggests new movies to a user based only on their past ratings and the ratings of similar users, using matrix factorization (SVD) from Scikit-Surprise.
 
 ## Dataset
-MovieLens `ml-latest-small` from GroupLens: about 100,000 real ratings from 610 users on roughly 9,700 movies. The data is not stored in this repo, because the MovieLens license does not allow redistribution. `movielens.py` downloads it automatically the first time you run the project.
+MovieLens `ml-latest-small` from GroupLens: about 100,000 real ratings from 610 users on roughly 9,700 movies. The data is not stored in this repo, because the MovieLens license does not allow redistribution. `movielens.py` downloads it automatically the first time you run the project. The demo app does not download anything: it reads movie titles from `outputs/movies.csv` and user histories stored inside the trained model.
 
 ## Method
 - Ratings are split 80/20 at random (seed 42).
